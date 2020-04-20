@@ -1,12 +1,15 @@
-import pyaudio as py
+import pyaudio as pya
 import wave
 import time
 import os
 import glob
 import sys
-import numpy as np
 
 CHUNK = 1024
+
+
+class SongNotFound(Exception):
+    pass
 
 
 class Gristen:
@@ -14,11 +17,13 @@ class Gristen:
         self.music_path = os.path.join(os.getcwd(), 'music')
         self.wf = None
         if song_requested is not None:
-            wav_file = self.find_song(song_requested)
-            if wav_file is not None:
-                self.wav_file = os.path.join(self.music_path, wav_file)
-            else:
-                self.wav_file = os.path.join(self.music_path, 'Timeless Clouds - Henrik Olsson.WAV')
+            try:
+                self.lil_path = self.find_song(song_requested)
+                self.wav_file = os.path.join(self.music_path, self.lil_path)
+            except SongNotFound:
+                raise SongNotFound
+        self.wf = wave.open(os.path.join('music', self.wav_file), 'rb')
+        self.get_song_info()
         self.generate_wav_data()
 
     def find_song(self, song_requested):
@@ -27,55 +32,53 @@ class Gristen:
             song_name = song.split('\\')[-1].split(' - ')[0]
             if song_requested == song_name:
                 return song.split('\\')[-1]
-        print("Did not find song '%s' sorry!" % song_requested)
-        return None
+        raise SongNotFound
+
+    def get_song_info(self):
+        song_length = self.wf.getnframes()
+        self.song_duration = int(song_length / self.wf.getframerate())
+        self.minutes = self.song_duration / 60
+        self.seconds = self.song_duration % 60
+        song_info = self.wav_file.split('\\')[-1].split('.')[0].split(' - ')
+        self.song_name = song_info[0]
+        self.song_artist = song_info[1]
 
     def callback(self, in_data, frame_count, time_info, status):
         wav_bytes = self.wf.readframes(frame_count)
-        return wav_bytes, py.paContinue
+        return wav_bytes, pya.paContinue
 
     def generate_wav_data(self):
-        self.wf = wave.open(os.path.join('music', self.wav_file), 'rb')
-        song_length = self.wf.getnframes()
-        song_duration = int(song_length / self.wf.getframerate())
-        minutes = song_duration / 60
-        seconds = song_duration % 60
-        song_info = self.wav_file.split('\\')[-1].split('.')[0].split(' - ')
-        song_name = song_info[0]
-        song_artist = song_info[1]
-
-        p = py.PyAudio()
-        stream = p.open(format=p.get_format_from_width(self.wf.getsampwidth()),
+        p = pya.PyAudio()
+        self.stream = p.open(format=p.get_format_from_width(self.wf.getsampwidth()),
                         channels=self.wf.getnchannels(),
                         rate=self.wf.getframerate(),
-                        output=True,
-                        stream_callback=self.callback)
+                        output=True)
+        # self.stream = p.open(format=p.get_format_from_width(self.wf.getsampwidth()),
+        #                 channels=self.wf.getnchannels(),
+        #                 rate=self.wf.getframerate(),
+        #                 output=True,
+        #                 stream_callback=self.callback)
 
-        print("Current Song:\n--- %s by %s" % (song_name, song_artist))
+        print("Current Song:\n--- %s by %s" % (self.song_name, self.song_artist))
+        with open(self.wav_file, "rb") as fwav:
+            data = fwav.read(1024)
+            while data:
+                yield data
+                data = fwav.read(1024)
 
-        stream.start_stream()
-        for second_count in range(song_duration):
-            total_of_song = round(second_count / song_duration * 60)
-            timestamp = ('▮' * total_of_song) + ('▯' * (60 - total_of_song))
-            sys.stdout.write("\r")
-            sys.stdout.write("--- %02d:%02d %s %02d:%02d" %
-                             (second_count / 60, second_count % 60, timestamp, minutes, seconds))
-            sys.stdout.flush()
-            time.sleep(1)
-
-        while stream.is_active():
-            time.sleep(0.1)
-
-        print("\nstopping stream")
-        stream.stop_stream()
-        stream.close()
+        self.stream.stop_stream()
+        self.stream.close()
 
         p.terminate()
 
 
 if __name__ == '__main__':
-    song_request = input("Hello! Enter the song name you want to listen to :)\n~ ")
-    music = Gristen(song_request)
+    while True:
+        song_request = input("Hello! Enter the song name you want to listen to :)\n~ ")
+        try:
+            Gristen(song_request)
+        except SongNotFound:
+            print("Could not find song %s..." % song_request)
 '''
 ILL TYPE HERE
 pretty much it is playing through the stream.write!!!
