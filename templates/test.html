@@ -6,14 +6,15 @@
         <title>Gristen</title>
     </head>
     <body>
+        <h1>{{group_name}}</h1>
         <p>Currently listening to</p>
         <p>{{song_name}} by {{song_artist}}</p>
         <audio controls autoplay loop>
-            <source src="/audio{{song}}" type="audio/x-wav;codec=pcm">
+            <source src="/audio_{{song}}" type="audio/x-wav;codec=pcm">
             Your browser does not support the audio element.
         </audio>
         <p>To change the current song enter below:</p>
-        <form method="post" action="." name="yeet">
+        <form method="post" action="/group_{{group_name}}" name="yeet">
             <p><input name="song_name" /></p>
             <p><input type="submit" value="Gristen" id="gristen" /></p>
         </form>
@@ -21,7 +22,7 @@
         <h3 style='color: #ccc;font-size: 30px;'>No message yet..</h3>
         <div class="message_holder"></div>
 
-        <form action="" method="POST" name="message">
+        <form action="/group_{{group_name}}" method="POST" name="message">
           <input type="text" class="username" placeholder="User Name"/>
           <input type="text" class="message" placeholder="Messages"/>
           <input type="submit" id="chat"/>

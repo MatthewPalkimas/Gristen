@@ -6,28 +6,15 @@
                 <title>Gristen</title>
             </head>
             <body>
-                <p>Hello! Enter the song name you want to listen to :)</p>
-                <form method="post" action=".">
-                    <p><input type="text" class="song_name" placeholder="Song Name" /></p>
+                <p>{{greeting}}{{name}}! Enter the group name you want to join and listen :)</p>
+                <form method="post" action="/group">
+                    <p><input type="text" name="group_name" placeholder="don't be shy" /></p>
                     <p><input type="submit" value="Gristen" id="gristen"/></p>
                 </form>
                 <p>If you want a sample song then click play below!</p>
                 <audio controls>
-                    <source src="/audio{{song}}" type="audio/x-wav;codec=pcm">
+                    <source src="/audio_{{song}}" type="audio/x-wav;codec=pcm">
                     Your browser does not support the audio element.
                 </audio>
-                <h3 style='color: #ccc;font-size: 30px;'>No message yet..</h3>
-                <div class="message_holder"></div>
-
-                <form action="." method="POST">
-                  <input type="text" class="username" placeholder="User Name"/>
-                  <input type="text" class="message" placeholder="Messages"/>
-                  <input type="submit" id="chat"/>
-                </form>
-
-                <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
-                <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
-                <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/1.7.3/socket.io.min.js"></script>
-                <script src="{{url_for('static', filename='input.js')}}"></script>
             </body>
         </html>
