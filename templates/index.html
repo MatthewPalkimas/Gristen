@@ -130,74 +130,161 @@
     </script>
 </head>
 <style type="text/css">
-    .yeet
-    {
-        float: left;
-        width: 33%;
+  :root {
+    --bg-color: #121212;
+    --hd-color: #1c1c1c;
+    --cd-color: #262626;
+    --pc-color: #bb86fc;
+  }
+  html {
+    margin: 0;
+    padding: 0;
+  }
+  body {
+    background-color: var(--bg-color);
+    color: white;
+    margin: 0;
+    padding: 0;
+  }
+  @media screen and (prefers-color-scheme: light) {
+    body {
+      background-color: white;
+      color: black;
     }
-    .yeet2
-    {
-        float: left;
-        width: 40%;
-    }
+  }
+  .middle
+  {
+    margin-left: 20px;
+    margin-right: 20px;
+    margin-top: 10px;
+    padding-left: 20px;
+    padding-right: 20px;
+    padding-bottom: 20px;
+    background-color: var(--cd-color);
+    border-radius: 5px;
+  }
+  h1 {
+    color: var(--pc-color);
+  }
+  button {
+    background-color: var(--pc-color);
+    border: none;
+    color: black;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    margin: 4px 2px;
+    cursor: pointer;
+    border-radius: 15px;
+  }
+  input[type=submit]
+  {
+    background-color: var(--pc-color);
+    border: none;
+    color: black;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    margin: 4px 2px;
+    cursor: pointer;
+    border-radius: 15px;
+  }
+  #header-panel
+  {
+    text-align: center;
+    background-color: var(--hd-color);
+    padding: 3px;
+  }
+  #body-panel
+  {
+    display: flex;
+    justify-content: space-around;
+    flex-wrap: wrap;
+    height: 85%;
+  }
+  #log
+  {
+    overflow: scroll;
+  }
+  #log-wrapper
+  {
+    border-style: solid;
+    border-width: thin;
+    border-color: var(--pc-color);
+    height: 280px;
+  }
+  .audio-player
+  {
+    color: var(--pc-color);
+  }
 </style>
 <body>
-    <div class="yeet2">
-        <h1>Welcome to Gristen, {{name}}</h1>
-        <p>Ping: <b><span id="ping-pong"></span>ms</b></p>
-        <h2>Send:</h2>
-<!--        <form id="emit" method="POST" action='#'>-->
-<!--            <input type="text" name="emit_data" id="emit_data" placeholder="Message">-->
-<!--            <input type="submit" value="Echo">-->
-<!--        </form>-->
-<!--        <br>-->
-        <form id="broadcast" method="POST" action='#'>
-            <input type="text" name="broadcast_data" id="broadcast_data" placeholder="Message">
-            <input type="submit" value="Broadcast">
-        </form>
-        <br>
-        <form id="join" method="POST" action='#'>
-            <input type="text" name="join_room" id="join_room" placeholder="Room Name">
-            <input type="submit" value="Join Room">
-        </form>
-        <br>
-        <form id="leave" method="POST" action='#'>
-            <input type="text" name="leave_room" id="leave_room" placeholder="Room Name">
-            <input type="submit" value="Leave Room">
-        </form>
-        <br>
-        <form id="send_room" method="POST" action='#'>
-            <input type="text" name="room_name" id="room_name" placeholder="Room Name">
-            <input type="text" name="room_data" id="room_data" placeholder="Message">
-            <input type="submit" value="Send to Room">
-        </form>
-        <br>
-        <form id="change_song" method="POST" action='#'>
-            <input type="text" name="room_name" id="roomname" placeholder="Room Name">
-            <input type="text" name="song_name" id="song_name" placeholder="Song Name">
-            <input type="submit" value="Play song now">
-        </form>
-        <br>
-<!--        <form id="close" method="POST" action="#">-->
-<!--            <input type="text" name="close_room" id="close_room" placeholder="Room Name">-->
-<!--            <input type="submit" value="Close Room">-->
-<!--        </form>-->
-<!--        <br>-->
-        <form id="disconnect" method="POST" action="#">
-            <input type="submit" value="Disconnect">
-        </form>
-        <h2>Playing Song:</h2>
-        <div id="song"></div>
-        <div id="songname"></div>
-        <div id="song_artist"></div>
-        <audio controls loop id="audio">
-            <source id="songPlz" src="/audio_{{song}}" type="audio/x-wav;codec=pcm">
-            Your browser does not support the audio element.
-        </audio>
-        <br>
-        <button onClick="togglePlay()">Play or Pause</button>
+    <div id="header-panel" class="top">
+      <h1 >Welcome to Gristen, {{name}}</h1>
+      <p>Ping: <b><span id="ping-pong"></span>ms</b></p>
     </div>
-    <h2>Messages:</h2>
-    <div id="log" style="overflow:scroll; height:500px;" class="yeet"></div>
+    <div id="body-panel">
+        <div id="left-panel" class="middle">
+            <div id="song">
+                <h2>Playing Song:</h2>
+                <div id="song"></div>
+                <div id="songname"></div>
+                <div id="song_artist"></div>
+                <audio controls loop id="audio">
+                    <source id="songPlz" src="/audio_{{song}}" type="audio/x-wav;codec=pcm">
+                    Your browser does not support the audio element.
+                </audio>
+                <br>
+                <button onClick="togglePlay()">Play or Pause</button>
+            </div>
+            <div id="room">
+                <br>
+                <form id="join" method="POST" action='#'>
+                    <input type="text" name="join_room" id="join_room" placeholder="Room Name">
+                    <input type="submit" value="Join Room">
+                </form>
+                <br>
+                <form id="leave" method="POST" action='#'>
+                    <input type="text" name="leave_room" id="leave_room" placeholder="Room Name">
+                    <input type="submit" value="Leave Room">
+                </form>
+                <br>
+                <form id="send_room" method="POST" action='#'>
+                    <input type="text" name="room_name" id="room_name" placeholder="Room Name">
+                    <input type="text" name="room_data" id="room_data" placeholder="Message">
+                    <input type="submit" value="Send to Room">
+                </form>
+                <br>
+                <form id="change_song" method="POST" action='#'>
+                    <input type="text" name="room_name" id="roomname" placeholder="Room Name">
+                    <input type="text" name="song_name" id="song_name" placeholder="Song Name">
+                    <input type="submit" value="Play song now">
+                </form>
+                <br>
+            </div>
+        </div>
+        <div id="right-panel" class="middle">
+            <div id="messages">
+                <h2>Messages:</h2>
+                <div id="log-wrapper">
+                  <div id="log"></div>
+                </div>
+                <div id="send">
+                    <h2>Send:</h2>
+                    <form id="send_room" method="POST" action='#'>
+                        <input type="text" name="room_name" id="room_name" placeholder="Room Name">
+                        <input type="text" name="username" id="username" placeholder="Screen Name">
+                        <input type="text" name="room_data" id="room_data" placeholder="Message">
+                        <input type="submit" value="Send to Room">
+                    </form>
+                    <br>
+                    <form id="broadcast" method="POST" action='#'>
+                        <input type="text" name="broadcast_data" id="broadcast_data" placeholder="Message">
+                        <input type="submit" value="Broadcast">
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
