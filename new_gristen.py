@@ -25,7 +25,7 @@ thread_lock = Lock()
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///db.sqlite3'
 
-default_song = "Sound & Color"
+default_song = "Meridian"
 gs = None
 
 db = SQLAlchemy(app)
@@ -108,6 +108,7 @@ def test_broadcast_message(message):
 def join(message):
     join_room(message['room'])
     session['receive_count'] = session.get('receive_count', 0) + 1
+    session['cur_room'] = message['room']
     emit('my_response',
          {'data': 'User ' + session['username'] + ' joined room: ' + ', '.join(rooms())}, room=message['room'])
 
@@ -116,6 +117,7 @@ def join(message):
 def leave(message):
     leave_room(message['room'])
     session['receive_count'] = session.get('receive_count', 0) + 1
+    session['current_room'] = 'null'
     emit('my_response',
          {'data': 'User ' + session['username'] + ' left room: ' + ', '.join(rooms())}, room=message['room'])
 
@@ -133,8 +135,8 @@ def close(message):
 def send_room_message(message):
     session['receive_count'] = session.get('receive_count', 0) + 1
     emit('chat_response',
-         {'data': message['data'], 'username': session.get("username"), 'room': message['room']},
-         room=message['room'])
+         {'data': message['data'], 'username': session.get("username"), 'room': session.get("cur_room")},
+         room=session.get("cur_room"))
 
 
 @socketio.on('change_song', namespace='/test')
@@ -145,8 +147,15 @@ def change_song(message):
     song_link = gs.song_name
     emit('song_response',
          {'data': message['data'], 'count': session['receive_count'], 'username': session.get("username"),
-          'song_link': song_link, 'song_name': gs.song_name, 'song_artist': gs.song_artist, 'room': message['room']},
-         room=message['room'])
+          'song_link': song_link, 'song_name': gs.song_name,
+          'song_artist': gs.song_artist, 'room': session.get("cur_room")},
+         room=session.get("cur_room"))
+
+
+@socketio.on('play_pause', namespace='/test')
+def play_or_pause():
+    print("attempting to play or pause")
+    emit('play_pause_response', {'username': session.get("username"), 'room': session.get("cur_room")}, room=session.get("cur_room"))
 
 
 @socketio.on('disconnect_request', namespace='/test')

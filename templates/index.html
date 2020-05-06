@@ -1,7 +1,7 @@
 <!DOCTYPE HTML>
 <html>
 <head>
-    <title>Flask-SocketIO Test</title>
+    <title>Gristen</title>
     <script src="//code.jquery.com/jquery-1.12.4.min.js" integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ=" crossorigin="anonymous"></script>
     <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js" integrity="sha256-yr4fRk/GU1ehYJPAs8P4JlTgu0Hdsp4ZKrx8bDEDC3I=" crossorigin="anonymous"></script>
     <script type="text/javascript" charset="utf-8">
@@ -41,32 +41,29 @@
                 if (cb)
                     cb();
             });
-            var audio = document.getElementById('audio');
-            var isPlaying = true;
+
             socket.on('song_response', function(msg, cb) {
+                var audio = document.getElementById('audio');
                 audio.autoplay = true;
                 document.getElementById('songPlz').src = '/audio_' + msg.song_link;
                 $('#log').append('<br>' + $('<div/>').text('[' + msg.room + '] ' + msg.username + ' requested song : ' + msg.data).html());
                 document.getElementById('log').scrollTop = document.getElementById('log').scrollHeight;
-                document.getElementById('song').innerHTML = msg.data;
                 document.getElementById('songname').innerHTML = msg.song_name;
                 document.getElementById('song_artist').innerHTML = msg.song_artist;
                 audio.load();
                 audio.play();
                 $('#log').append('<br>' + $('<div/>').text('[' + msg.room + '] ' + ' Now Playing : ' + msg.song_name + ' - ' + msg.song_artist).html());
                 document.getElementById('log').scrollTop = document.getElementById('log').scrollHeight;
-                isPlaying = true;
                 if (cb)
                     cb();
             });
 
-            function togglePlay() {
-              if (isPlaying) {
-                    audio.pause()
-              } else {
-                audio.play();
-              }
-            };
+            socket.on('play_pause_response', function(msg, cb) {
+                var audio = document.getElementById('audio');
+                $('#log').append('<br>' + $('<div/>').text('[' + msg.room + '] ' + msg.username + ' play or paused the music.').html());
+                document.getElementById('log').scrollTop = document.getElementById('log').scrollHeight;
+                return audio.paused ? audio.play() : audio.pause();
+            });
 
             // Interval function that tests message latency by sending a "ping"
             // message. The server then responds with a "pong" message and the
@@ -100,22 +97,33 @@
             });
             $('form#broadcast').submit(function(event) {
                 socket.emit('my_broadcast_event', {data: $('#broadcast_data').val()});
+                document.getElementById('broadcast_data').value='';
                 return false;
             });
             $('form#join').submit(function(event) {
                 socket.emit('join', {room: $('#join_room').val()});
+                document.getElementById('current_room').innerHTML='Current Room: ' + document.getElementById('join_room').value;
+                document.getElementById('join_room').value='';
                 return false;
             });
             $('form#leave').submit(function(event) {
                 socket.emit('leave', {room: $('#leave_room').val()});
+                document.getElementById('current_room').innerHTML='Currently not in a room!';
+                document.getElementById('leave_room').value='';
                 return false;
             });
             $('form#send_room').submit(function(event) {
-                socket.emit('my_room_event', {room: $('#room_name').val(), data: $('#room_data').val()});
+                socket.emit('my_room_event', {data: $('#room_data').val()});
+                document.getElementById('room_data').value='';
                 return false;
             });
             $('form#change_song').submit(function(event) {
-                socket.emit('change_song', {room: $('#roomname').val(), data: $('#song_name').val()});
+                socket.emit('change_song', {data: $('#song_name').val()});
+                document.getElementById('song_name').value='';
+                return false;
+            });
+            $('form#play_pause').submit(function(event) {
+                socket.emit('play_pause');
                 return false;
             });
             $('form#close').submit(function(event) {
@@ -134,7 +142,7 @@
     --bg-color: #121212;
     --hd-color: #1c1c1c;
     --cd-color: #262626;
-    --pc-color: #bb86fc;
+    --pc-color: #380379;
   }
   html {
     margin: 0;
@@ -142,13 +150,13 @@
   }
   body {
     background-color: var(--bg-color);
-    color: white;
+    color: black;
     margin: 0;
     padding: 0;
   }
-  @media screen and (prefers-color-scheme: light) {
+  @media screen and (prefers-color-scheme: dark) {
     body {
-      background-color: white;
+      background-color: black;
       color: black;
     }
   }
@@ -162,14 +170,16 @@
     padding-bottom: 20px;
     background-color: var(--cd-color);
     border-radius: 5px;
+    width: 40%;
+    color: #4BFDEB;
   }
   h1 {
-    color: var(--pc-color);
+    color: #bb86fc;
   }
   button {
     background-color: var(--pc-color);
     border: none;
-    color: black;
+    color: white;
     text-align: center;
     text-decoration: none;
     display: inline-block;
@@ -181,13 +191,34 @@
   {
     background-color: var(--pc-color);
     border: none;
-    color: black;
+    color: white;
     text-align: center;
     text-decoration: none;
     display: inline-block;
     margin: 4px 2px;
     cursor: pointer;
     border-radius: 15px;
+  }
+  input
+  {
+    text-align: center;
+    background-color: #181a1b;
+    border-width: 2px;
+    border-style: inset;
+    border-image: initial;
+    border-color: #575757;
+    color: white;
+  }
+  input[name=song_name]
+  {
+    background-color: #181a1b;
+    border-width: 2px;
+    border-style: inset;
+    border-image: initial;
+    border-color: #575757;
+    color: white;
+    text-align: center;
+    width: 15em; height: 1em;
   }
   #header-panel
   {
@@ -205,13 +236,15 @@
   #log
   {
     overflow: scroll;
-  }
-  #log-wrapper
-  {
     border-style: solid;
     border-width: thin;
-    border-color: var(--pc-color);
+    border-color: #6706DE;
     height: 280px;
+    padding-left: 5px;
+    ms-overflow-style: none;
+  }
+  #log::-webkit-scrollbar {
+    display: none;
   }
   .audio-player
   {
@@ -221,21 +254,23 @@
 <body>
     <div id="header-panel" class="top">
       <h1 >Welcome to Gristen, {{name}}</h1>
-      <p>Ping: <b><span id="ping-pong"></span>ms</b></p>
+      <p><font color="00FF00">Ping: <b><span id="ping-pong"></span>ms</b></font></p>
     </div>
     <div id="body-panel">
         <div id="left-panel" class="middle">
             <div id="song">
                 <h2>Playing Song:</h2>
-                <div id="song"></div>
                 <div id="songname"></div>
                 <div id="song_artist"></div>
-                <audio controls loop id="audio">
+                <br>
+                <audio controls id="audio">
                     <source id="songPlz" src="/audio_{{song}}" type="audio/x-wav;codec=pcm">
                     Your browser does not support the audio element.
                 </audio>
                 <br>
-                <button onClick="togglePlay()">Play or Pause</button>
+                <form id="play_pause" method="POST" action='#'>
+                    <input type="submit" value="Play or Pause">
+                </form>
             </div>
             <div id="room">
                 <br>
@@ -249,31 +284,21 @@
                     <input type="submit" value="Leave Room">
                 </form>
                 <br>
-                <form id="send_room" method="POST" action='#'>
-                    <input type="text" name="room_name" id="room_name" placeholder="Room Name">
-                    <input type="text" name="room_data" id="room_data" placeholder="Message">
-                    <input type="submit" value="Send to Room">
-                </form>
-                <br>
                 <form id="change_song" method="POST" action='#'>
-                    <input type="text" name="room_name" id="roomname" placeholder="Room Name">
                     <input type="text" name="song_name" id="song_name" placeholder="Song Name">
                     <input type="submit" value="Play song now">
                 </form>
                 <br>
+                <h2 id="current_room">Currently not in a room!</h2>
             </div>
         </div>
         <div id="right-panel" class="middle">
             <div id="messages">
                 <h2>Messages:</h2>
-                <div id="log-wrapper">
-                  <div id="log"></div>
-                </div>
+                <div id="log"></div>
                 <div id="send">
                     <h2>Send:</h2>
                     <form id="send_room" method="POST" action='#'>
-                        <input type="text" name="room_name" id="room_name" placeholder="Room Name">
-                        <input type="text" name="username" id="username" placeholder="Screen Name">
                         <input type="text" name="room_data" id="room_data" placeholder="Message">
                         <input type="submit" value="Send to Room">
                     </form>
