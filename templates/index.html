@@ -30,26 +30,31 @@
             // to the client. The data is then displayed in the "Received"
             // section of the page.
             socket.on('my_response', function(msg, cb) {
-                $('#log').append('<br>' + $('<div/>').text('Received #' + msg.count + ': ' + msg.data).html());
+                $('#log').append('<br>' + $('<div/>').text(msg.data).html());
+                document.getElementById('log').scrollTop = document.getElementById('log').scrollHeight;
                 if (cb)
                     cb();
             });
             socket.on('chat_response', function(msg, cb) {
-                $('#log').append('<br>' + $('<div/>').text(msg.username + ': ' + msg.data).html());
+                $('#log').append('<br>' + $('<div/>').text('[' + msg.room + '] ' + msg.username + ' : ' + msg.data).html());
+                document.getElementById('log').scrollTop = document.getElementById('log').scrollHeight;
                 if (cb)
                     cb();
             });
             var audio = document.getElementById('audio');
             var isPlaying = true;
             socket.on('song_response', function(msg, cb) {
-                test = '/audio_' + msg.song_link;
-                document.getElementById('songPlz').src = test;
-                $('#log').append('<br>' + $('<div/>').text('Received song name #' + msg.count + ': ' + msg.data + ' ' + test).html());
+                audio.autoplay = true;
+                document.getElementById('songPlz').src = '/audio_' + msg.song_link;
+                $('#log').append('<br>' + $('<div/>').text('[' + msg.room + '] ' + msg.username + ' requested song : ' + msg.data).html());
+                document.getElementById('log').scrollTop = document.getElementById('log').scrollHeight;
                 document.getElementById('song').innerHTML = msg.data;
                 document.getElementById('songname').innerHTML = msg.song_name;
                 document.getElementById('song_artist').innerHTML = msg.song_artist;
                 audio.load();
                 audio.play();
+                $('#log').append('<br>' + $('<div/>').text('[' + msg.room + '] ' + ' Now Playing : ' + msg.song_name + ' - ' + msg.song_artist).html());
+                document.getElementById('log').scrollTop = document.getElementById('log').scrollHeight;
                 isPlaying = true;
                 if (cb)
                     cb();
@@ -106,7 +111,7 @@
                 return false;
             });
             $('form#send_room').submit(function(event) {
-                socket.emit('my_room_event', {username: $('#username').val(), room: $('#room_name').val(), data: $('#room_data').val()});
+                socket.emit('my_room_event', {room: $('#room_name').val(), data: $('#room_data').val()});
                 return false;
             });
             $('form#change_song').submit(function(event) {
@@ -138,7 +143,7 @@
 </style>
 <body>
     <div class="yeet2">
-        <h1>Gristen</h1>
+        <h1>Welcome to Gristen, {{name}}</h1>
         <p>Ping: <b><span id="ping-pong"></span>ms</b></p>
         <h2>Send:</h2>
 <!--        <form id="emit" method="POST" action='#'>-->
@@ -163,7 +168,6 @@
         <br>
         <form id="send_room" method="POST" action='#'>
             <input type="text" name="room_name" id="room_name" placeholder="Room Name">
-            <input type="text" name="username" id="username" placeholder="Screen Name">
             <input type="text" name="room_data" id="room_data" placeholder="Message">
             <input type="submit" value="Send to Room">
         </form>
@@ -171,7 +175,7 @@
         <form id="change_song" method="POST" action='#'>
             <input type="text" name="room_name" id="roomname" placeholder="Room Name">
             <input type="text" name="song_name" id="song_name" placeholder="Song Name">
-            <input type="submit" value="Send Song to Room">
+            <input type="submit" value="Play song now">
         </form>
         <br>
 <!--        <form id="close" method="POST" action="#">-->
@@ -186,7 +190,7 @@
         <div id="song"></div>
         <div id="songname"></div>
         <div id="song_artist"></div>
-        <audio controls autoplay loop id="audio">
+        <audio controls loop id="audio">
             <source id="songPlz" src="/audio_{{song}}" type="audio/x-wav;codec=pcm">
             Your browser does not support the audio element.
         </audio>

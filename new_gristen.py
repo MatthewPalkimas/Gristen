@@ -1,10 +1,16 @@
 #!/usr/bin/env python
 from threading import Lock
 from flask import Flask, render_template, session, request, \
-    copy_current_request_context, Response
+    copy_current_request_context, Response, url_for, redirect
 from flask_socketio import SocketIO, emit, join_room, leave_room, \
     close_room, rooms, disconnect
 from gristen import Gristen, SongNotFound
+from flask_wtf import FlaskForm
+from wtforms import StringField
+from flask_sqlalchemy import SQLAlchemy
+import datetime
+import time
+
 
 # Set this variable to "threading", "eventlet" or "gevent" to test the
 # different async modes, or leave it set to None for the application to choose
@@ -12,13 +18,27 @@ from gristen import Gristen, SongNotFound
 async_mode = None
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'secret!'
+app.config['SECRET_KEY'] = 'vnkdjnfjknfl1232#'
 socketio = SocketIO(app, async_mode=async_mode)
 thread = None
 thread_lock = Lock()
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///db.sqlite3'
 
-gs = None
 default_song = "Sound & Color"
+gs = None
+
+db = SQLAlchemy(app)
+
+
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(50))
+    date_created = db.Column(db.DateTime, default=datetime.datetime.now)
+
+
+class LoginForm(FlaskForm):
+    username = StringField('username')
 
 
 def background_thread():
@@ -30,6 +50,14 @@ def background_thread():
     #     socketio.emit('my_response',
     #                   {'data': 'Server generated event', 'count': count},
     #                   namespace='/test')
+
+
+@app.route('/', methods=['GET', 'POST'])
+def form():
+    form = LoginForm()
+    if form.validate_on_submit():
+        return redirect(url_for('/index'))
+    return render_template('form.html', form=form)
 
 
 @app.route('/audio_<song>', methods=["GET", "POST"])
@@ -46,10 +74,19 @@ def audio_(song):
         print("here")
 
 
-@app.route('/')
+@app.route('/gristen', methods=["POST"])
 def index():
+    name = request.form['name']
+    if User.query.filter_by(name=name).first() is not None:
+        pass
+    else:
+        user = User(name=name)
+        db.session.add(user)
+        db.session.commit()
+        print("added a new user")
+    session["username"] = name
     song = default_song
-    return render_template('index.html', async_mode=socketio.async_mode, song=song)
+    return render_template('index.html', async_mode=socketio.async_mode, song=song, name=name)
 
 
 @socketio.on('my_event', namespace='/test')
@@ -62,8 +99,8 @@ def test_message(message):
 @socketio.on('my_broadcast_event', namespace='/test')
 def test_broadcast_message(message):
     session['receive_count'] = session.get('receive_count', 0) + 1
-    emit('my_response',
-         {'data': message['data'], 'count': session['receive_count']},
+    emit('chat_response',
+         {'data': message['data'], 'username': session.get("username"), 'room': 'Global'},
          broadcast=True)
 
 
@@ -72,8 +109,7 @@ def join(message):
     join_room(message['room'])
     session['receive_count'] = session.get('receive_count', 0) + 1
     emit('my_response',
-         {'data': 'In rooms: ' + ', '.join(rooms()),
-          'count': session['receive_count']})
+         {'data': 'User ' + session['username'] + ' joined room: ' + ', '.join(rooms())}, room=message['room'])
 
 
 @socketio.on('leave', namespace='/test')
@@ -81,8 +117,7 @@ def leave(message):
     leave_room(message['room'])
     session['receive_count'] = session.get('receive_count', 0) + 1
     emit('my_response',
-         {'data': 'In rooms: ' + ', '.join(rooms()),
-          'count': session['receive_count']})
+         {'data': 'User ' + session['username'] + ' left room: ' + ', '.join(rooms())}, room=message['room'])
 
 
 @socketio.on('close_room', namespace='/test')
@@ -98,20 +133,19 @@ def close(message):
 def send_room_message(message):
     session['receive_count'] = session.get('receive_count', 0) + 1
     emit('chat_response',
-         {'data': message['data'], 'username': message['username']},
+         {'data': message['data'], 'username': session.get("username"), 'room': message['room']},
          room=message['room'])
 
 
 @socketio.on('change_song', namespace='/test')
 def change_song(message):
     print("attempting to change song to %s" % message['data'])
-    session['receive_count'] = session.get('receive_count', 0) + 1
     global gs
     gs = Gristen(message['data'])
     song_link = gs.song_name
     emit('song_response',
-         {'data': message['data'], 'count': session['receive_count'],
-          'song_link': song_link, 'song_name': gs.song_name, 'song_artist': gs.song_artist},
+         {'data': message['data'], 'count': session['receive_count'], 'username': session.get("username"),
+          'song_link': song_link, 'song_name': gs.song_name, 'song_artist': gs.song_artist, 'room': message['room']},
          room=message['room'])
 
 
@@ -126,7 +160,7 @@ def disconnect_request():
     # when the callback function is invoked we know that the message has been
     # received and it is safe to disconnect
     emit('my_response',
-         {'data': 'Disconnected!', 'count': session['receive_count']},
+         {'data': 'Disconnected!'},
          callback=can_disconnect)
 
 
