@@ -29,6 +29,8 @@ class Gristen:
         self.wf = None
         self.wav_path = None
         self.utube_title = None
+        self.stream = None
+        self.p = None
         if song_requested is not None or song_requested != '':
             try:
                 self.lil_path = self.find_song(song_requested)
@@ -57,6 +59,7 @@ class Gristen:
                 self.utube_title = r['title'].replace('\"', '')
                 self.utube_title = self.utube_title.replace('/', '')
                 song_mp3 = os.path.join(self.music_path, r['id'] + '.mp3')
+                time.sleep(5)
                 self.wav_path = os.path.join(self.music_path, self.utube_title + '.wav')
                 subprocess.call(['ffmpeg',
                                  '-n',
@@ -90,8 +93,8 @@ class Gristen:
         return wav_bytes, pya.paContinue
 
     def generate_wav_data(self):
-        p = pya.PyAudio()
-        self.stream = p.open(format=p.get_format_from_width(self.wf.getsampwidth()),
+        self.p = pya.PyAudio()
+        self.stream = self.p.open(format=self.p.get_format_from_width(self.wf.getsampwidth()),
                         channels=self.wf.getnchannels(),
                         rate=self.wf.getframerate(),
                         output=True)
@@ -125,7 +128,7 @@ class Gristen:
         self.stream.stop_stream()
         self.stream.close()
 
-        p.terminate()
+        self.p.terminate()
 
 
 if __name__ == '__main__':
